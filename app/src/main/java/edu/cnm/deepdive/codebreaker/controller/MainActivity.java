@@ -3,6 +3,7 @@ package edu.cnm.deepdive.codebreaker.controller;
 import android.graphics.Color;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ListView;
@@ -10,6 +11,8 @@ import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import android.os.Bundle;
+import androidx.lifecycle.Observer;
+import androidx.lifecycle.ViewModelProvider;
 import edu.cnm.deepdive.codebreaker.R;
 import edu.cnm.deepdive.codebreaker.adapter.GuessAdapter;
 import edu.cnm.deepdive.codebreaker.model.Code.Guess;
@@ -29,21 +32,41 @@ public class MainActivity extends AppCompatActivity {
   private ListView guessList;
   private EditText guess;
   private Button submit;
-  private Game game;
-  private GuessAdapter adapter;
-  private SecureRandom rng;
+  private MainViewModel viewModel;
 
   @Override
   protected void onCreate(Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
     setContentView(R.layout.activity_main);
+    setupViews();
+    setupViewModel();
+  }
+
+  private void setupViewModel() {
+    View guessControls = findViewById(R.id.guess_controls);
+    viewModel = new ViewModelProvider(this).get(MainViewModel.class);
+    viewModel.getGame().observe(this, (game) -> {
+      GuessAdapter adapter = new GuessAdapter(MainActivity.this, colorMap);
+      adapter.addAll(game.getGuesses());
+      guessList.setAdapter(adapter);
+      guessList.setSelection(adapter.getCount() - 1);
+      guess.setText("");
+    });
+    viewModel.getSolved().observe(this, solved ->
+        submit.setVisibility(solved ? View.INVISIBLE : View.VISIBLE));
+    viewModel.getThrowable().observe(this, (throwable) -> {
+      if (throwable != null) {
+        Toast.makeText(this, throwable.getLocalizedMessage(), Toast.LENGTH_LONG).show();
+      }
+    });
+  }
+
+  private void setupViews() {
     guessList = findViewById(R.id.guess_list);
     guess = findViewById(R.id.guess);
     submit = findViewById(R.id.submit);
     submit.setOnClickListener((view) -> recordGuess());
-    adapter = new GuessAdapter(this, colorMap);
-    rng = new SecureRandom();
-    startGame();
+    // deleted submit but didnt not ready for it..
   }
 
   @Override
@@ -69,32 +92,15 @@ public class MainActivity extends AppCompatActivity {
   }
 
   private void recordGuess() {
-    try {
-      String text = this.guess.getText().toString().toUpperCase();
-      Guess guess = game.guess(text);
-      adapter.add(guess);
-      guessList.setSelection(adapter.getCount() - 1);
-      this.guess.setText("");
-    } catch (IllegalArgumentException e) {
-      Toast.makeText(this, e.getMessage(), Toast.LENGTH_LONG).show();
-    }
+    viewModel.guess(guess.getText().toString().trim().toUpperCase());
   }
 
   private void startGame() {
-    game = new Game(MainViewModel.POOL, MainViewModel.CODE_LENGTH, rng);
-    adapter.clear();
-    guessList.setAdapter(adapter);
+    viewModel.startGame();
   }
 
   private void restartGame() {
-    game.restart();
-    adapter.clear();///maybe?
-
-  }
-
-  private void resetList() {
-    adapter.clear();
-    guessList.setAdapter(adapter);
+    viewModel.restartGame();
   }
 
   private static Map<Character, Integer> buildColorMap(char[] chars, int[] values) {
