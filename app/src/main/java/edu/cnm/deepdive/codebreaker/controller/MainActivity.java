@@ -2,6 +2,8 @@ package edu.cnm.deepdive.codebreaker.controller;
 
 import android.content.Intent;
 import android.graphics.Color;
+import android.text.InputFilter;
+import android.text.Spanned;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -23,7 +25,9 @@ import java.security.SecureRandom;
 import java.util.HashMap;
 import java.util.Map;
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity implements InputFilter {
+
+  private static final String INVALID_CHAR_PATTERN = String.format("[^%s]", MainViewModel.POOL);
 
   private static final int[] colorValues =
       {Color.RED, 0xffffa500, Color.YELLOW, Color.GREEN, Color.BLUE, 0xff4b0082, 0xffee82ee};
@@ -32,8 +36,10 @@ public class MainActivity extends AppCompatActivity {
 
   private ListView guessList;
   private EditText guess;
-  private Button submit;
+  private Button submit; // deleted
   private MainViewModel viewModel;
+  private GuessAdapter adapter;
+  private int codeLength;
 
   @Override
   protected void onCreate(Bundle savedInstanceState) {
@@ -44,17 +50,18 @@ public class MainActivity extends AppCompatActivity {
   }
 
   private void setupViewModel() {
-    View guessControls = findViewById(R.id.guess_controls);
+      adapter = new GuessAdapter(MainActivity.this, colorMap);
     viewModel = new ViewModelProvider(this).get(MainViewModel.class);
     viewModel.getGame().observe(this, (game) -> {
-      GuessAdapter adapter = new GuessAdapter(MainActivity.this, colorMap);
+      adapter.clear();
       adapter.addAll(game.getGuesses());
       guessList.setAdapter(adapter);
       guessList.setSelection(adapter.getCount() - 1);
+      codeLength = game.getLength();
       guess.setText("");
     });
     viewModel.getSolved().observe(this, solved ->
-        submit.setVisibility(solved ? View.INVISIBLE : View.VISIBLE));
+        findViewById(R.id.guess_controls).setVisibility(solved ? View.INVISIBLE : View.VISIBLE));
     viewModel.getThrowable().observe(this, (throwable) -> {
       if (throwable != null) {
         Toast.makeText(this, throwable.getLocalizedMessage(), Toast.LENGTH_LONG).show();
@@ -65,9 +72,10 @@ public class MainActivity extends AppCompatActivity {
   private void setupViews() {
     guessList = findViewById(R.id.guess_list);
     guess = findViewById(R.id.guess);
+    guess.setFilters(new InputFilter[]{this});
     submit = findViewById(R.id.submit);
     submit.setOnClickListener((view) -> recordGuess());
-    // deleted submit but didnt not ready for it..
+    // deleted submit but didnt not ready for it..maybe not..
   }
 
   @Override
@@ -114,5 +122,20 @@ public class MainActivity extends AppCompatActivity {
       colorMap.put(chars[i], values[i]);
     }
     return colorMap;
+  }
+
+  @Override
+  public CharSequence filter(CharSequence source, int sourceStart, int sourceEnd,
+      Spanned dest, int destStart, int destEnd) {
+    String modifiedSource = source.toString().toUpperCase().replaceAll(INVALID_CHAR_PATTERN, "");
+    StringBuilder builder = new StringBuilder(dest);
+    builder.replace(destStart, destEnd, modifiedSource);
+    if (builder.length() > codeLength) {
+      modifiedSource =
+          modifiedSource.substring(0, modifiedSource.length() - (builder.length() - codeLength));
+    }
+    int newLength = dest.length() - (destEnd - destStart) + modifiedSource.length();
+    submit.setEnabled(newLength == codeLength);
+    return modifiedSource;
   }
 }
