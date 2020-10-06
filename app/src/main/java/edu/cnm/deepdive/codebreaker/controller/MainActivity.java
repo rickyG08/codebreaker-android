@@ -36,7 +36,7 @@ public class MainActivity extends AppCompatActivity implements InputFilter {
 
   private ListView guessList;
   private EditText guess;
-  private Button submit; // deleted
+  private Button submit;
   private MainViewModel viewModel;
   private GuessAdapter adapter;
   private int codeLength;
