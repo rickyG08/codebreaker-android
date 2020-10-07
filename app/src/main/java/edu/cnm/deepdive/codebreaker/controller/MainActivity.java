@@ -50,7 +50,7 @@ public class MainActivity extends AppCompatActivity implements InputFilter {
   }
 
   private void setupViewModel() {
-      adapter = new GuessAdapter(MainActivity.this, colorMap);
+    adapter = new GuessAdapter(MainActivity.this, colorMap);
     viewModel = new ViewModelProvider(this).get(MainViewModel.class);
     viewModel.getGame().observe(this, (game) -> {
       adapter.clear();
@@ -93,6 +93,7 @@ public class MainActivity extends AppCompatActivity implements InputFilter {
         startGame();
         break;
       case R.id.restart_game:
+        restartGame();
         break;
       case R.id.settings:
         Intent intent = new Intent(this, SettingsActivity.class);
@@ -101,7 +102,7 @@ public class MainActivity extends AppCompatActivity implements InputFilter {
       default:
         handled = super.onOptionsItemSelected(item);
     }
-      return handled;
+    return handled;
   }
 
   private void recordGuess() {
