@@ -14,7 +14,9 @@
   <string name="code_length_pref_summary"><![CDATA[Length of secret code & required length of all guesses.]]>
   </string>
 
-  <sting-array name="color_labels">
+  <string name="color_codes">ROYGBIV</string>
+
+  <string-array name="color_labels">
     <item>Red</item>
     <item>Orange</item>
     <item>Yellow</item>
@@ -23,7 +25,7 @@
     <item>Indigo</item>
     <item>Violet</item>
 
-  </sting-array>
+  </string-array>
 
 
 </resources>
